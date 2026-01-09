@@ -1,9 +1,18 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function LandingPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate('/home');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -86,27 +95,38 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <Link to={user ? "/home" : "/"} className="flex items-center gap-2 sm:gap-3">
               <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg sm:rounded-xl flex items-center justify-center">
                 <i className="ri-briefcase-line text-lg sm:text-xl text-white"></i>
               </div>
               <span className={`text-lg sm:text-xl font-bold transition-colors ${scrolled ? 'text-gray-900' : 'text-white'}`}>Career Assistant</span>
-            </div>
+            </Link>
 
             {/* Desktop Navigation */}
             <div className="hidden sm:flex items-center gap-4">
-              <Link 
-                to="/login" 
-                className={`px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${scrolled ? 'text-gray-700 hover:text-teal-600' : 'text-white hover:text-teal-200'}`}
-              >
-                Log In
-              </Link>
-              <Link 
-                to="/signup" 
-                className="px-6 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl whitespace-nowrap cursor-pointer"
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <Link
+                  to="/home"
+                  className="px-6 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl whitespace-nowrap cursor-pointer"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className={`px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${scrolled ? 'text-gray-700 hover:text-teal-600' : 'text-white hover:text-teal-200'}`}
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="px-6 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl whitespace-nowrap cursor-pointer"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Hamburger */}
@@ -127,7 +147,7 @@ export default function LandingPage() {
 
       {/* Mobile Menu */}
       <div className={`fixed inset-0 z-40 sm:hidden transition-all duration-300 ${mobileMenuOpen ? 'visible' : 'invisible'}`}>
-        <div 
+        <div
           className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setMobileMenuOpen(false)}
         ></div>
@@ -144,20 +164,32 @@ export default function LandingPage() {
               </button>
             </div>
             <div className="flex-1 flex flex-col justify-center px-4 py-8 space-y-4">
-              <Link 
-                to="/login" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full px-6 py-3 text-center text-slate-700 font-medium rounded-lg border-2 border-slate-200 hover:border-teal-600 hover:text-teal-600 transition-all cursor-pointer"
-              >
-                Log In
-              </Link>
-              <Link 
-                to="/signup" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full px-6 py-3 text-center bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg cursor-pointer"
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <Link
+                  to="/home"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full px-6 py-3 text-center bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg cursor-pointer"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full px-6 py-3 text-center text-slate-700 font-medium rounded-lg border-2 border-slate-200 hover:border-teal-600 hover:text-teal-600 transition-all cursor-pointer"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full px-6 py-3 text-center bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg cursor-pointer"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -165,14 +197,14 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 sm:pt-0">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center sm:bg-center bg-[center_top]"
           style={{
             backgroundImage: 'url(https://readdy.ai/api/search-image?query=modern%20professional%20workspace%20with%20laptop%20and%20coffee%20minimalist%20clean%20aesthetic%20soft%20natural%20lighting%20warm%20tones%20abstract%20geometric%20shapes%20floating%20in%20background%20representing%20career%20growth%20and%20success%20digital%20illustration%20style%20vertical%20composition%20centered%20subject%20perfect%20for%20mobile%20screens&width=800&height=1200&seq=landing-hero-bg-mobile-001&orientation=portrait)'
           }}
         >
           {/* Mobile-specific background for better fit */}
-          <div 
+          <div
             className="hidden sm:block absolute inset-0 bg-cover bg-center"
             style={{
               backgroundImage: 'url(https://readdy.ai/api/search-image?query=modern%20professional%20workspace%20with%20laptop%20and%20coffee%20minimalist%20clean%20aesthetic%20soft%20natural%20lighting%20warm%20tones%20abstract%20geometric%20shapes%20floating%20in%20background%20representing%20career%20growth%20and%20success%20digital%20illustration%20style&width=1920&height=1080&seq=landing-hero-bg-001&orientation=landscape)'
@@ -180,38 +212,50 @@ export default function LandingPage() {
           ></div>
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60 sm:from-black/50 sm:via-black/40 sm:to-black/50"></div>
-        
+
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-32 text-center w-full">
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm rounded-full text-white text-xs sm:text-sm font-medium mb-6 sm:mb-8">
             <i className="ri-sparkle-line"></i>
             <span>AI-Powered Career Tools</span>
           </div>
-          
+
           <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight px-4">
             Land Your Dream Job<br />
             <span className="text-teal-400">Faster & Smarter</span>
           </h1>
-          
+
           <p className="text-base sm:text-xl md:text-2xl text-white/90 mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed px-4">
-            Your all-in-one career assistant powered by AI. From CV optimization to company research, 
+            Your all-in-one career assistant powered by AI. From CV optimization to company research,
             we help you stand out and succeed in your job search.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
-            <Link 
-              to="/signup" 
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-2xl hover:shadow-teal-500/50 whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
-            >
-              Start Free Today
-              <i className="ri-arrow-right-line"></i>
-            </Link>
-            <Link 
-              to="/login" 
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-white/20 transition-all border border-white/20 whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <i className="ri-login-box-line"></i>
-              Log In
-            </Link>
+            {user ? (
+              <Link
+                to="/home"
+                className="w-full sm:w-auto px-10 sm:px-12 py-3 sm:py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-2xl hover:shadow-teal-500/50 whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                Back to Dashboard
+                <i className="ri-arrow-right-line"></i>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/signup"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-2xl hover:shadow-teal-500/50 whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Start Free Today
+                  <i className="ri-arrow-right-line"></i>
+                </Link>
+                <Link
+                  to="/login"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-white/20 transition-all border border-white/20 whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <i className="ri-login-box-line"></i>
+                  Log In
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="mt-8 sm:mt-16 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-white/80 text-xs sm:text-base px-4">
@@ -249,7 +293,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
             {features.map((feature, index) => (
-              <div 
+              <div
                 key={index}
                 className="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 cursor-pointer overflow-hidden"
               >
@@ -260,7 +304,7 @@ export default function LandingPage() {
                     alt={feature.title}
                     className="w-full h-full object-cover object-center"
                   />
-                  
+
                   {/* Icon Overlay */}
                   <div className="absolute top-4 left-4 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                     <i className={`${feature.icon} text-xl sm:text-2xl text-white`}></i>
@@ -360,31 +404,43 @@ export default function LandingPage() {
           <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
         </div>
-        
+
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-4 sm:mb-6">
             Ready to Transform Your Career?
           </h2>
           <p className="text-base sm:text-xl text-white/90 mb-8 sm:mb-12 leading-relaxed">
-            Join thousands of job seekers who are already using Career Assistant to land their dream jobs. 
+            Join thousands of job seekers who are already using Career Assistant to land their dream jobs.
             Start your journey today - it's free to get started!
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <Link 
-              to="/signup" 
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-teal-600 rounded-lg font-semibold text-base sm:text-lg hover:bg-gray-50 transition-all shadow-xl hover:shadow-2xl whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
-            >
-              Create Free Account
-              <i className="ri-arrow-right-line"></i>
-            </Link>
-            <Link 
-              to="/login" 
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-white/20 transition-all border border-white/20 whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <i className="ri-login-box-line"></i>
-              Already have an account?
-            </Link>
+            {user ? (
+              <Link
+                to="/home"
+                className="w-full sm:w-auto px-10 sm:px-12 py-3 sm:py-4 bg-white text-teal-600 rounded-lg font-semibold text-base sm:text-lg hover:bg-gray-50 transition-all shadow-xl hover:shadow-2xl whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                Enter Dashboard
+                <i className="ri-dashboard-line"></i>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/signup"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-teal-600 rounded-lg font-semibold text-base sm:text-lg hover:bg-gray-50 transition-all shadow-xl hover:shadow-2xl whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Create Free Account
+                  <i className="ri-arrow-right-line"></i>
+                </Link>
+                <Link
+                  to="/login"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-white/20 transition-all border border-white/20 whitespace-nowrap inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <i className="ri-login-box-line"></i>
+                  Already have an account?
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-white/80 text-xs sm:text-sm">
@@ -408,13 +464,13 @@ export default function LandingPage() {
       <footer className="bg-gray-900 text-white py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2 sm:gap-3">
+            <Link to={user ? "/home" : "/"} className="flex items-center gap-2 sm:gap-3 transition-transform hover:scale-105">
               <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg sm:rounded-xl flex items-center justify-center">
                 <i className="ri-briefcase-line text-lg sm:text-xl text-white"></i>
               </div>
-              <span className="text-lg sm:text-xl font-bold">Career Assistant</span>
-            </div>
-            
+              <span className="text-lg sm:text-xl font-bold text-white">Career Assistant</span>
+            </Link>
+
             <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 text-xs sm:text-sm text-gray-400">
               <Link to="/terms-of-service" className="hover:text-white transition-colors cursor-pointer">
                 Terms of Service
@@ -427,7 +483,7 @@ export default function LandingPage() {
               </a>
             </div>
           </div>
-          
+
           <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-800 text-center text-xs sm:text-sm text-gray-400">
             <p>&copy; 2025 Career Assistant. All rights reserved.</p>
           </div>

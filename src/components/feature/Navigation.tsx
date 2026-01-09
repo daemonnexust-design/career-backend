@@ -25,7 +25,7 @@ export default function Navigation() {
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 md:h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 md:gap-3">
+            <Link to={user ? "/home" : "/"} className="flex items-center gap-2 md:gap-3">
               <div className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg">
                 <i className="ri-briefcase-4-line text-lg md:text-xl text-white"></i>
               </div>
@@ -39,8 +39,8 @@ export default function Navigation() {
                   key={item.path}
                   to={item.path}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${location.pathname === item.path
-                      ? 'bg-teal-50 text-teal-700'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-teal-50 text-teal-700'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                 >
                   <i className={`${item.icon} text-base`}></i>
@@ -96,8 +96,8 @@ export default function Navigation() {
               key={item.path}
               to={item.path}
               className={`flex items-center gap-3 px-6 py-4 text-base font-medium ${location.pathname === item.path
-                  ? 'bg-teal-50 text-teal-700 border-r-4 border-teal-600'
-                  : 'text-slate-700'
+                ? 'bg-teal-50 text-teal-700 border-r-4 border-teal-600'
+                : 'text-slate-700'
                 }`}
               onClick={() => setIsMenuOpen(false)}
             >

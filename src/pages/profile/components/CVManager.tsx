@@ -14,21 +14,36 @@ export function CVManager() {
     const [uploading, setUploading] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
     useEffect(() => {
         if (user) fetchCV();
     }, [user]);
 
     const fetchCV = async () => {
+        // Robust fetch: verify user, order by newest, take 1
+        if (!user) return;
+
         const { data, error } = await supabase
             .from('user_cvs')
             .select('*')
-            .eq('user_id', user?.id)
-            .maybeSingle(); // Assumes single CV per user as per logic
+            .eq('user_id', user.id)
+            .order('uploaded_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (error) console.error(error);
-        if (data) setCv(data);
-        else setCv(null);
+        if (error) {
+            console.error('Error fetching CV:', error);
+            setError('Failed to load CV data');
+        }
+
+        if (data) {
+            console.log('CV Data loaded:', data);
+            setCv(data);
+        } else {
+            console.log('No CV found for user');
+            setCv(null);
+        }
     };
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,27 +69,59 @@ export function CVManager() {
 
             setUploading(true);
 
+            // Get session for token
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('You must be logged in to upload a CV.');
+
             const formData = new FormData();
             formData.append('file', file);
 
-            const { data, error: functionError } = await supabase.functions.invoke('upload-cv', {
-                body: formData,
+            // Construct URL dynamically
+            // VITE_PUBLIC_SUPABASE_URL is usually defined in .env
+            const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL;
+            const functionUrl = `${supabaseUrl}/functions/v1/upload-cv`;
+
+            console.log('Uploading to:', functionUrl);
+
+            // Use raw fetch to debug potential library issues and get raw response
+            const response = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    // Do NOT set Content-Type for FormData, browser sets it with boundary
+                },
+                body: formData
             });
 
-            if (functionError) {
-                // Supabase function invoke returns a special error object
-                throw new Error(functionError.message || 'Failed to upload CV. Please try again.');
+            const result = await response.json();
+
+            if (!response.ok) {
+                console.error('Edge Function Error Response:', result);
+                throw new Error(result.error || result.message || `Server error: ${response.status}`);
             }
 
-            if (data?.success === false) {
-                throw new Error(data.error || 'Upload failed');
+            if (result.success === false) {
+                throw new Error(result.error || 'Upload failed');
+            }
+
+            // Log debug info for troubleshooting
+            if (result.debug) {
+                console.log('--- CV Upload Debug Info ---');
+                console.log('User ID:', result.debug.userId);
+                console.log('DB Operation:', result.debug.dbOperation);
+                console.log('DB Result:', result.debug.dbResult);
+                console.log('Storage:', result.debug.storageUpload);
+                console.log('----------------------------');
             }
 
             // Success
             await fetchCV();
 
+            const dbId = result.data?.id || 'Unknown';
+            setSuccessMsg(`Upload Successful! DB ID: ${dbId}`);
+
         } catch (err: any) {
-            console.error('CV Upload Error:', err);
+            console.error('CV Upload Error details:', err);
             setError(err.message || 'An unexpected error occurred during upload.');
         } finally {
             setUploading(false);
@@ -135,10 +182,22 @@ export function CVManager() {
 
     return (
         <div className="space-y-6">
+            {successMsg && (
+                <div className="p-4 bg-emerald-50/50 backdrop-blur-sm border border-emerald-100 text-emerald-700 rounded-2xl text-sm flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                    <i className="ri-checkbox-circle-line text-lg"></i>
+                    {successMsg}
+                </div>
+            )}
+
             {error && (
-                <div className="p-4 bg-red-50/50 backdrop-blur-sm border border-red-100 text-red-700 rounded-2xl text-sm flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                    <i className="ri-error-warning-line text-lg"></i>
-                    {error}
+                <div className="p-4 bg-red-50/50 backdrop-blur-sm border border-red-100 text-red-700 rounded-2xl text-sm flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3">
+                        <i className="ri-error-warning-line text-lg"></i>
+                        <span className="font-semibold">Upload Failed</span>
+                    </div>
+                    <pre className="text-xs bg-white/50 p-2 rounded border border-red-100 overflow-auto whitespace-pre-wrap font-mono">
+                        {error}
+                    </pre>
                 </div>
             )}
 

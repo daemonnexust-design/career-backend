@@ -8,6 +8,16 @@ interface FilePreviewProps {
 }
 
 export default function FilePreview({ file, onRemove }: FilePreviewProps) {
+  const getFileIcon = (fileName: string) => {
+    if (fileName.toLowerCase().endsWith('.pdf')) return 'ri-file-pdf-line';
+    return 'ri-file-word-line';
+  };
+
+  const getFileType = (fileName: string) => {
+    if (fileName.toLowerCase().endsWith('.pdf')) return 'PDF Document';
+    return 'Word Document';
+  };
+
   const fileIcon = file.type === 'pdf' ? 'ri-file-pdf-line' : 'ri-file-word-line';
   const fileIconColor = file.type === 'pdf' ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600';
   const fileIconBg = file.type === 'pdf' ? 'bg-red-50' : 'bg-blue-50';

@@ -13,111 +13,195 @@ serve(async (req) => {
     }
 
     try {
+        console.log('--- CV Upload Start ---');
+
         // 1. Verify User
         const authHeader = req.headers.get('Authorization');
-        if (!authHeader) throw new Error('Missing Authorization header');
+        if (!authHeader) {
+            throw new Error('Missing Authorization header');
+        }
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            console.error('Missing Supabase Env Vars');
+            throw new Error(`Server Config Error: URL=${!!supabaseUrl}, KEY=${!!supabaseAnonKey}`);
+        }
 
         const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: authHeader } } }
+            supabaseUrl,
+            supabaseAnonKey,
+            {
+                global: { headers: { Authorization: authHeader } },
+                auth: { persistSession: false }
+            }
         );
 
         const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-        if (userError || !user) throw new Error('Unauthorized');
+        if (userError || !user) {
+            console.error('User verification failed:', userError);
+            // Distinct error message to confirm code version
+            throw new Error(`DEBUG_AUTH_FAIL: ${userError?.message || 'No User'} | Project: ${supabaseUrl}`);
+        }
+        console.log('User verified:', user.id);
 
         // 2. Parse Form Data (Multipart)
-        const formData = await req.formData();
-        const file = formData.get('file');
-
-        if (!file || !(file instanceof File)) {
-            throw new Error('No file uploaded or invalid file format');
+        console.log('Parsing form data...');
+        let formData;
+        try {
+            formData = await req.formData();
+        } catch (e) {
+            console.error('Error parsing FormData:', e);
+            throw new Error('Failed to parse multipart form data');
         }
 
-        // 3. Validation
-        // Size check (e.g., max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
+        const file = formData.get('file');
+
+        if (!file) {
+            console.error('No file provided in FormData');
+            throw new Error('No file uploaded');
+        }
+
+        // 3. Robust Type Extraction
+        // In Deno Edge, file is a File object but TS might complain.
+        // We cast to any to access properties safely.
+        const fileObj = file as any;
+        const fileName = fileObj.name || 'cv.pdf';
+        const fileType = fileObj.type || 'application/pdf';
+        const fileSize = fileObj.size || 0;
+
+        console.log(`File received: ${fileName}, Size: ${fileSize}, Type: ${fileType}`);
+
+        // 4. Validation
+        if (fileSize > 5 * 1024 * 1024) {
             throw new Error('File size exceeds 5MB limit');
         }
 
-        // Type check
         const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (!allowedTypes.includes(file.type)) {
-            throw new Error('Invalid file type. Only PDF and DOC/DOCX allowed.');
+        if (!allowedTypes.includes(fileType)) {
+            // Be lenient with octet-stream if name ends in .pdf/doc
+            const ext = fileName.split('.').pop()?.toLowerCase();
+            const allowedExts = ['pdf', 'doc', 'docx'];
+            if (!allowedExts.includes(ext)) {
+                throw new Error('Invalid file type. Only PDF and DOC/DOCX allowed.');
+            }
         }
 
-        // 4. Upload to Storage (Service Role)
-        // We use Service Role to strict-write to the user's folder.
+        // 5. Upload to Storage (Service Role)
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (!serviceRoleKey) {
+            console.error('Missing SUPABASE_SERVICE_ROLE_KEY');
+            throw new Error('Server misconfiguration: Missing Service Role Key');
+        }
+
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+            serviceRoleKey
         );
 
-        const filePath = `${user.id}/cv.pdf`; // Normalize filename to 'cv.pdf' for simplicity or keep original?
-        // Requirement says: "Replaces existing CV if present". Single CV per user implied.
-        // Let's standardise to `cv.pdf` inside `{user_id}` folder.
+        const filePath = `${user.id}/cv.pdf`;
 
-        const fileBuffer = await file.arrayBuffer();
+        // Robust buffer reading
+        let fileBuffer;
+        if (typeof fileObj.arrayBuffer === 'function') {
+            fileBuffer = await fileObj.arrayBuffer();
+        } else {
+            // Fallback for older Deno versions or different polyfills
+            throw new Error('File object does not support arrayBuffer()');
+        }
 
+        console.log('Uploading to storage path:', filePath);
         const { error: uploadError } = await supabaseAdmin
             .storage
             .from('cv-uploads')
             .upload(filePath, fileBuffer, {
-                contentType: file.type,
+                contentType: fileType,
                 upsert: true
             });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+            console.error('Storage upload error:', uploadError);
+            throw uploadError;
+        }
+        console.log('Storage upload successful');
 
-        // 5. Upsert Metadata in Database (Service Role)
-        // RLS prevents User from Inserting, so use Admin.
-        const { data: record, error: dbError } = await supabaseAdmin
+        // 6. Update Database
+        console.log('Updating database metadata...');
+
+        // Upsert using onConflict if simple, or explicit check
+        // Using explicit check/update per previous logic which is safer for now
+        const { data: existing } = await supabaseAdmin
             .from('user_cvs')
-            .upsert({
-                user_id: user.id,
-                file_path: filePath,
-                original_filename: file.name,
-                uploaded_at: new Date().toISOString()
-            }, { onConflict: 'user_id' }) // Assumption: one CV per user?
-        // Wait, schema has PK on 'id'. 'user_id' is FK.
-        // If we want Single CV, we should enforce uniqueness on user_id?
-        // Let's check schema.
-        // `create table if not exists public.user_cvs ( id uuid default gen_random_uuid() primary key, ...`
-        // It doesn't strictly enforce UNIQUE(user_id).
-        // BUT current requirement: "Replaces existing CV if present".
-        // So we should probably check if one exists, or add a unique constraint.
-        // For now, let's just DELETE old ones and insert new, OR find existing ID and update.
-
-        // Better approach: Select first, if exists -> Update. If not -> Insert.
-
-        // Actually, let's query existing
-        const { data: existing } = await supabaseAdmin.from('user_cvs').select('id').eq('user_id', user.id).maybeSingle();
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
         let result;
         if (existing) {
+            console.log('Updating existing record:', existing.id);
             result = await supabaseAdmin.from('user_cvs').update({
                 file_path: filePath,
-                original_filename: file.name,
+                original_filename: fileName,
                 uploaded_at: new Date().toISOString()
             }).eq('id', existing.id).select().single();
         } else {
+            console.log('Inserting new record for user:', user.id);
             result = await supabaseAdmin.from('user_cvs').insert({
                 user_id: user.id,
                 file_path: filePath,
-                original_filename: file.name
+                original_filename: fileName
             }).select().single();
         }
 
-        if (result.error) throw result.error;
+        if (result.error) {
+            console.error('Database update error:', result.error);
+            throw result.error;
+        }
+        console.log('Database update successful:', result.data);
+
+        // 7. Log Activity
+        try {
+            await supabaseAdmin.from('activity_logs').insert({
+                user_id: user.id,
+                action_type: 'UPLOAD_CV',
+                title: 'Uploaded new CV',
+                metadata: {
+                    filename: fileName,
+                    size: fileSize,
+                    path: filePath
+                }
+            });
+            console.log('Activity logged');
+        } catch (logError) {
+            console.error('Failed to log activity:', logError);
+            // Don't fail the request just because logging failed
+        }
 
         return new Response(
-            JSON.stringify({ success: true, data: result.data }),
+            JSON.stringify({
+                success: true,
+                data: result.data,
+                debug: {
+                    userId: user.id,
+                    filePath: filePath,
+                    storageUpload: 'success',
+                    dbOperation: existing ? 'update' : 'insert',
+                    dbResult: result.data
+                }
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error('--- CV Upload Error ---', error);
+        const msg = error.message || 'Internal Server Error';
         return new Response(
-            JSON.stringify({ success: false, error: error.message }),
+            JSON.stringify({
+                success: false,
+                error: msg,
+                debug: String(error)
+            }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
