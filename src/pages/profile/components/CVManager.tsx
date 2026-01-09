@@ -37,26 +37,49 @@ export function CVManager() {
             const file = e.target.files?.[0];
             if (!file) return;
 
+            // Strict Frontend Validation
+            const allowedTypes = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                throw new Error('Invalid file type. Please upload a PDF or Word document (.doc, .docx).');
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error('File is too large. Maximum size is 5MB.');
+            }
+
             setUploading(true);
 
             const formData = new FormData();
             formData.append('file', file);
 
-            const { data, error } = await supabase.functions.invoke('upload-cv', {
+            const { data, error: functionError } = await supabase.functions.invoke('upload-cv', {
                 body: formData,
             });
 
-            if (error) throw error;
+            if (functionError) {
+                // Handle Supabase function invocation errors
+                const errorBody = await functionError.json();
+                throw new Error(errorBody.error || 'Failed to upload CV. Please try again.');
+            }
 
-            // Refresh CV data
+            if (data?.success === false) {
+                throw new Error(data.error || 'Upload failed');
+            }
+
+            // Success
             await fetchCV();
 
         } catch (err: any) {
-            setError(err.message || 'Error uploading CV');
+            console.error('CV Upload Error:', err);
+            setError(err.message || 'An unexpected error occurred during upload.');
         } finally {
             setUploading(false);
-            // Reset input
-            e.target.value = '';
+            if (e.target) e.target.value = '';
         }
     };
 

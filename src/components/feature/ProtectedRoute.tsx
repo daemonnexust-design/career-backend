@@ -9,18 +9,24 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+
       setAuthenticated(!!session);
+      setEmailConfirmed(!!user?.email_confirmed_at);
       setLoading(false);
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
       setAuthenticated(!!session);
+      setEmailConfirmed(!!user?.email_confirmed_at);
     });
 
     return () => subscription.unsubscribe();
@@ -28,19 +34,19 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-orange-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <i className="ri-loader-4-line text-3xl text-white animate-spin"></i>
-          </div>
-          <p className="text-gray-600 font-medium">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
 
   if (!authenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If email is not confirmed, redirect to verify-email (unless already on verify-email? No, this route is only for children)
+  if (!emailConfirmed) {
+    return <Navigate to="/verify-email" replace />;
   }
 
   return <>{children}</>;
