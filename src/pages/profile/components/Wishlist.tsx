@@ -80,51 +80,73 @@ export function Wishlist() {
     if (loading) return <div className="text-gray-500 text-sm">Loading wishlist...</div>;
 
     return (
-        <div className="space-y-6">
-            <form onSubmit={addItem} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input
-                    type="text"
-                    placeholder="Company Name"
-                    value={newCompany}
-                    onChange={(e) => setNewCompany(e.target.value)}
-                    className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    required
-                />
-                <input
-                    type="text"
-                    placeholder="Role Title"
-                    value={newRole}
-                    onChange={(e) => setNewRole(e.target.value)}
-                    className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    required
-                />
+        <div className="space-y-8">
+            <form onSubmit={addItem} className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative group">
+                    <i className="ri-building-line absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors"></i>
+                    <input
+                        type="text"
+                        placeholder="Company Name"
+                        value={newCompany}
+                        onChange={(e) => setNewCompany(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-medium text-slate-900"
+                        required
+                    />
+                </div>
+                <div className="flex-1 relative group">
+                    <i className="ri-award-line absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors"></i>
+                    <input
+                        type="text"
+                        placeholder="Target Role"
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-medium text-slate-900"
+                        required
+                    />
+                </div>
                 <button
                     type="submit"
                     disabled={adding}
-                    className="bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 h-[42px]"
+                    className="bg-teal-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-teal-700 active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2 min-w-[160px]"
                 >
-                    {adding ? 'Adding...' : 'Add to Wishlist'}
+                    {adding ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                        <>
+                            <i className="ri-add-line text-lg"></i>
+                            <span>Add Target</span>
+                        </>
+                    )}
                 </button>
             </form>
 
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-3">
                 {items.length === 0 ? (
-                    <p className="text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
-                        Your wishlist is empty. Add companies you're interested in!
-                    </p>
+                    <div className="text-center py-16 bg-white border border-dashed border-slate-200 rounded-[2.5rem]">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                            <i className="ri-star-line text-3xl"></i>
+                        </div>
+                        <p className="text-slate-400 font-medium">Your wishlist is empty.</p>
+                        <p className="text-xs text-slate-300 mt-1">Add companies you're dreaming of joining.</p>
+                    </div>
                 ) : (
                     items.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <div>
-                                <h4 className="font-semibold text-slate-900">{item.company_name}</h4>
-                                <p className="text-sm text-slate-600">{item.role_title}</p>
+                        <div key={item.id} className="group flex justify-between items-center p-5 bg-white rounded-2xl border border-slate-100 hover:border-teal-100 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:from-teal-50 group-hover:to-emerald-50 group-hover:text-teal-600 transition-colors">
+                                    <i className="ri-building-fill text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-slate-900 group-hover:text-teal-700 transition-colors">{item.company_name}</h4>
+                                    <p className="text-sm font-medium text-slate-500">{item.role_title}</p>
+                                </div>
                             </div>
                             <button
                                 onClick={() => removeItem(item.id)}
-                                className="p-2 text-slate-400 hover:text-red-600 transition-colors"
-                                title="Remove"
+                                className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all active:scale-90"
+                                title="Remove from wishlist"
                             >
-                                <i className="ri-delete-bin-line text-lg"></i>
+                                <i className="ri-delete-bin-line text-xl"></i>
                             </button>
                         </div>
                     ))

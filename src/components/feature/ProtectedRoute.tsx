@@ -12,24 +12,37 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+
       const user = session?.user;
+      const isConfirmed = !!user?.email_confirmed_at;
 
       setAuthenticated(!!session);
-      setEmailConfirmed(!!user?.email_confirmed_at);
+      setEmailConfirmed(isConfirmed);
       setLoading(false);
     };
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+
       const user = session?.user;
+      const isConfirmed = !!user?.email_confirmed_at;
+
       setAuthenticated(!!session);
-      setEmailConfirmed(!!user?.email_confirmed_at);
+      setEmailConfirmed(isConfirmed);
+      setLoading(false); // Ensure loading is off after state change
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (loading) {

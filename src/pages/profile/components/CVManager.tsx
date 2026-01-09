@@ -62,9 +62,8 @@ export function CVManager() {
             });
 
             if (functionError) {
-                // Handle Supabase function invocation errors
-                const errorBody = await functionError.json();
-                throw new Error(errorBody.error || 'Failed to upload CV. Please try again.');
+                // Supabase function invoke returns a special error object
+                throw new Error(functionError.message || 'Failed to upload CV. Please try again.');
             }
 
             if (data?.success === false) {
@@ -135,70 +134,101 @@ export function CVManager() {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             {error && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                <div className="p-4 bg-red-50/50 backdrop-blur-sm border border-red-100 text-red-700 rounded-2xl text-sm flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                    <i className="ri-error-warning-line text-lg"></i>
                     {error}
                 </div>
             )}
 
             {!cv ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className="flex flex-col items-center">
-                        <svg className="w-10 h-10 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        <p className="text-gray-600 mb-1">Upload your CV</p>
-                        <p className="text-xs text-gray-400 mb-4">PDF or DOCX (Max 5MB)</p>
+                <div className="relative group p-[2px] rounded-[2rem] overflow-hidden transition-all hover:scale-[1.01]">
+                    {/* Animated Gradient Border */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 opacity-20 group-hover:opacity-100 transition-opacity animate-gradient-x"></div>
 
-                        <label className="cursor-pointer">
-                            <span className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                                {uploading ? 'Uploading...' : 'Select File'}
-                            </span>
-                            <input
-                                type="file"
-                                className="hidden"
-                                accept=".pdf,.doc,.docx"
-                                onChange={handleUpload}
-                                disabled={uploading}
-                            />
-                        </label>
+                    <div className="relative bg-white rounded-[1.95rem] p-10 text-center border-2 border-dashed border-slate-200 group-hover:border-transparent transition-all">
+                        <div className="flex flex-col items-center">
+                            <div className="w-20 h-20 bg-teal-50 rounded-3xl flex items-center justify-center mb-6 text-teal-600 transition-transform group-hover:scale-110">
+                                <i className="ri-file-upload-line text-4xl"></i>
+                            </div>
+
+                            <h3 className="text-xl font-bold text-slate-900 mb-2">Upload your CV</h3>
+                            <p className="text-slate-500 mb-8 max-w-xs mx-auto text-sm leading-relaxed">
+                                Share your professional history to help our AI personalize your applications.
+                            </p>
+
+                            <label className="cursor-pointer">
+                                <span className={`px-10 py-4 bg-slate-900 text-white rounded-2xl text-base font-bold shadow-2xl shadow-slate-900/20 hover:shadow-teal-500/30 hover:bg-teal-600 transition-all inline-flex items-center gap-2 ${uploading ? 'opacity-50' : ''}`}>
+                                    {uploading ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            <span>Processing...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="ri-add-circle-line text-xl"></i>
+                                            <span>Select PDF / Word</span>
+                                        </>
+                                    )}
+                                </span>
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept=".pdf,.doc,.docx"
+                                    onChange={handleUpload}
+                                    disabled={uploading}
+                                />
+                            </label>
+
+                            <p className="mt-6 text-xs text-slate-400 font-medium">
+                                Maximum file size: 5MB
+                            </p>
+                        </div>
                     </div>
                 </div>
             ) : (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
+                <div className="group relative bg-white border border-slate-100 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500">
+                    <div className="flex items-center gap-6 w-full sm:w-auto">
+                        <div className="w-16 h-16 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl flex items-center justify-center text-teal-600 border border-teal-100/50">
+                            <i className="ri-file-pdf-2-line text-3xl"></i>
                         </div>
-                        <div>
-                            <h3 className="text-sm font-medium text-blue-900">{cv.original_filename}</h3>
-                            <p className="text-xs text-blue-600">Uploaded {new Date(cv.uploaded_at).toLocaleDateString()}</p>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-teal-600 transition-colors truncate max-w-[200px] md:max-w-xs">
+                                {cv.original_filename}
+                            </h3>
+                            <div className="flex items-center gap-3 mt-1.5">
+                                <span className="px-2 py-0.5 bg-slate-50 text-[10px] font-bold text-slate-500 rounded-md uppercase tracking-wider border border-slate-100">
+                                    Document Locked
+                                </span>
+                                <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                                    Added {new Date(cv.uploaded_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
                         <button
                             onClick={handleDownload}
                             disabled={downloading}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            className="flex-1 sm:flex-none px-6 py-3 bg-teal-50 text-teal-700 rounded-2xl font-bold hover:bg-teal-100 active:scale-95 transition-all flex items-center justify-center gap-2"
                             title="Download CV"
                         >
                             {downloading ? (
-                                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                <div className="w-5 h-5 border-2 border-teal-600/30 border-t-teal-600 rounded-full animate-spin"></div>
                             ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                <i className="ri-download-cloud-2-line text-xl"></i>
                             )}
+                            <span>View</span>
                         </button>
 
                         <button
                             onClick={handleDelete}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                            title="Delete CV"
+                            className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                            title="Remove CV"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <i className="ri-delete-bin-7-line text-xl"></i>
                         </button>
                     </div>
                 </div>
